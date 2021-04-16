@@ -1,0 +1,13 @@
+doctype html
+html
+  head
+    title Новый пост
+  style
+  body
+    h1 Новый пост
+    form(method="POST" action="/articles")
+      label Заголовок:
+        input(type="text" name="title")
+      label Текст:
+        input(type="textarea" name="content")
+      button(type="submit") Создать
