@@ -22,7 +22,7 @@ export class AppController {
 
   @Get('articles/:id')
   @Render('article')
-  async post(@Param('id', ParseIntPipe) id: number) {
+  async getById(@Param('id', ParseIntPipe) id: number) {
     const article = await Article.findOne({ id });
     console.log(article);
     return article;
