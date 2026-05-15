@@ -8,22 +8,24 @@ import {
   Redirect,
   Render,
 } from '@nestjs/common';
-import { Article } from './article.model';
+import { ArticleService } from './article.service';
 
 @Controller()
 export class AppController {
+  constructor(private readonly articleService: ArticleService) {}
+
   @Get()
   @Render('index')
   async index() {
     return {
-      posts: await Article.find(),
+      posts: await this.articleService.findAll(),
     };
   }
 
   @Get('articles/:id')
   @Render('article')
   async getById(@Param('id', ParseIntPipe) id: number) {
-    const article = await Article.findOne({ id });
+    const article = await this.articleService.findById(id);
     console.log(article);
     return article;
   }
@@ -39,7 +41,6 @@ export class AppController {
   async create(
     @Body() body: { title: string; content: string },
   ): Promise<void> {
-    const article = new Article(body.title, body.content);
-    await article.save();
+    await this.articleService.create(body.title, body.content);
   }
 }

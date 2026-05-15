@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { Article } from './article.model';
+import { ArticleService } from './article.service';
 
 @Module({
   imports: [
@@ -16,7 +17,9 @@ import { Article } from './article.model';
       synchronize: true,
       entities: [Article],
     }),
+    TypeOrmModule.forFeature([Article]),
   ],
   controllers: [AppController],
+  providers: [ArticleService],
 })
 export class AppModule {}
