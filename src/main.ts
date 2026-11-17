@@ -1,12 +1,11 @@
-import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.setBaseViewsDir(join(__dirname, '../views'));
-  app.setViewEngine('pug');
-  await app.listen(3000);
-}
-bootstrap();
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { NodeAdapter } from "@nestjs/platform-node";
+import type { NestNodeApplication } from "@nestjs/platform-node";
+import { ConfigService } from "@nestjs/config";
+import { AppModule } from "./app.module.js";
+import { setup } from "./setup.js";
+const app = await NestFactory.create<NestNodeApplication>(AppModule, new NodeAdapter());
+setup(app);
+app.enableShutdownHooks();
+await app.listen(app.get(ConfigService).getOrThrow<number>("PORT"), "0.0.0.0");

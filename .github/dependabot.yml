@@ -1,11 +1,26 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: npm
+    directory: /
     schedule:
-      interval: "monthly"
+      interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 1
+    commit-message:
+      prefix: chore
     groups:
-      all-npm-dependencies:
-        patterns:
-          - "*"
+      npm-all:
+        patterns: ['*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: chore
+    groups:
+      github-actions-all:
+        patterns: ['*']

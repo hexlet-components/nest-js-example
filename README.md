@@ -1,43 +1,106 @@
-# Nestjs project example
+Менеджер проектов и задач показывает разработку REST API на NestJS. Приложение сохраняет данные в PostgreSQL через Drizzle, регистрирует пользователей, выдаёт JWT и ограничивает доступ владельцем проекта. Входные и выходные контракты описаны схемами Zod, из них Nest формирует OpenAPI.
 
-## Description
+Пример используется в [курсе NestJS Хекслета](https://ru.hexlet.io/courses/js-nest).
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Запуск
 
-## Installation
-
-```bash
-$ npm install
-```
-
-## Running the app
+Для запуска нужны [mise](https://mise.jdx.dev/getting-started.html) и [Docker с Compose](https://docs.docker.com/compose/install/). mise устанавливает Node.js 26, pnpm 12 и инструменты линтинга. Точную версию pnpm задаёт поле `packageManager` в _package.json_.
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone https://github.com/hexlet-components/nest-js-example.git
+cd nest-js-example
+mise install
+make setup
+make dev
 ```
 
-## Test
+Команда `make setup` устанавливает зависимости, создаёт _.env_ из шаблона, поднимает PostgreSQL и применяет миграции рабочего приложения и тестовой БД. Существующий _.env_ сохраняется. `make dev` запускает Nest CLI в режиме наблюдения и пересобирает приложение при изменении исходников.
+
+Приложение отвечает по адресу `http://localhost:3000`, состояние доступно через `GET /health`. Swagger UI находится по адресу `http://localhost:3000/api`, JSON-документ доступен по адресу `http://localhost:3000/api-json`. Сервер завершается сочетанием Ctrl+C.
+
+## API
+
+Сначала пользователь регистрируется через `POST /users` и входит через `POST /auth/login`. Вход возвращает `accessToken`. Остальные маршруты используют заголовок `Authorization` со значением `Bearer <токен>`. Пароль при регистрации содержит не менее 12 символов.
+
+| Метод и маршрут | Назначение |
+| --- | --- |
+| `POST /users` | Зарегистрировать пользователя по email и паролю |
+| `POST /auth/login` | Получить JWT по email и паролю |
+| `GET /users/me` | Получить свой профиль |
+| `POST /projects` | Создать проект с названием `name` и необязательным `description` |
+| `GET /projects`, `GET /projects/:id` | Получить свои проекты или один проект |
+| `PATCH /projects/:id`, `DELETE /projects/:id` | Изменить или удалить свой проект |
+| `POST /tasks` | Создать задачу с полями `title` и `projectId` |
+| `GET /tasks`, `GET /tasks/:id` | Получить свои задачи или одну задачу |
+| `PATCH /tasks/:id`, `DELETE /tasks/:id` | Изменить или удалить свою задачу |
+| `POST /projects/:projectId/tasks` | Создать задачу в указанном проекте |
+| `GET /projects/:projectId/tasks` | Получить задачи указанного проекта |
+
+У задачи есть описание `description` и статус `todo` или `done`. Создание задаёт пустое описание и статус `todo` по умолчанию. Частичное обновление сохраняет отсутствующие поля. Список задач поддерживает параметры `q`, `status`, `limit` и `offset`; результаты упорядочены по названию и UUID.
+
+Проекты с задачами при удалении возвращают `409`. Перед удалением проекта его задачи удаляются отдельно. Запрос чужого проекта или задачи возвращает `404`, запрос без токена возвращает `401`. Ошибки имеют формат Problem Details и идентификатор запроса в поле `requestId` и заголовке `X-Request-Id`.
+
+## Проверки и сборка
+
+Локальные проверки используют отдельную БД `nest_test`. Тесты очищают её таблицы перед сценариями, поэтому `TEST_DATABASE_URL` должен указывать на БД, предназначенную для тестов.
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+make check
 ```
 
-[![Hexlet Ltd. logo](https://raw.githubusercontent.com/Hexlet/assets/master/images/hexlet_logo128.png)](https://hexlet.io?utm_source=github&utm_medium=link&utm_campaign=nest-js-example)
+Эта команда проверяет линтинг, форматирование, типы, сборку и тесты. Интеграционные тесты используют настоящий PostgreSQL и тот же `NodeAdapter`, что приложение. Отдельный тест запускает собранный ESM через HTTP, проверяет сохранность задачи после перезапуска и завершение по `SIGTERM`. Миграционный тест сохраняет прежние UUID и данные при добавлении пользователей и владельцев.
 
-This repository is created and maintained by the team and the community of Hexlet, an educational project. [Read more about Hexlet](https://hexlet.io?utm_source=github&utm_medium=link&utm_campaign=nest-js-example).
+Для запуска собранного приложения используются отдельные команды.
 
-See most active contributors on [hexlet-friends](https://friends.hexlet.io/).
+```bash
+make build
+make start
+```
+
+В этом случае Node.js исполняет код из _dist/_. TypeScript компилирует декораторы и сохраняет метаданные, поэтому запуск исходников через снятие типов Node.js для этого приложения не используется. Vitest преобразует TypeScript через SWC, проверка типов выполняется отдельно.
+
+GitHub Actions поднимает PostgreSQL и выполняет `make ci`. Эта цель устанавливает зависимости по лок-файлу, готовит тестовую БД и запускает тот же набор проверок.
+
+## Конфигурация и данные
+
+`PORT`, `DATABASE_URL` и `JWT_SECRET` проверяются перед запуском. Учебный секрет из _.env.example_ подходит для локального примера. Для отдельного окружения используется собственный случайный секрет. PostgreSQL слушает порт `55432`; рабочая БД называется `nest`, тестовая называется `nest_test`.
+
+| Команда | Действие |
+| --- | --- |
+| `make install` | Установить зависимости по лок-файлу |
+| `make db-up`, `make db-down` | Запустить или остановить PostgreSQL |
+| `make db-migrate` | Применить схему к рабочей БД |
+| `make db-migrate-test` | Применить схему к тестовой БД |
+| `make test` | Собрать приложение и запустить тесты |
+| `make lint`, `make typecheck` | Проверить стиль или типы |
+| `make lint-fix` | Применить исправления линтера и форматтера |
+
+Данные PostgreSQL хранятся в именованном томе Compose и сохраняются после `make db-down`.
+
+## Добавление владельцев к существующим данным
+
+Этот сценарий подходит для приложения, в котором уже есть таблицы проектов и задач без пользователей и владельцев. Перед переходом приложение останавливается, PostgreSQL продолжает работать. Команды выполняются из этого репозитория. Требуется клиент `psql`, а `DATABASE_URL` должен указывать на существующую БД. Сценарий сохраняет прежние UUID, поля и связи записей.
+
+```bash
+make install
+make env
+make build
+export DATABASE_URL=postgresql://nest:nest@localhost:55432/existing_tasks
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/prepare-users.sql
+```
+
+В этом примере `existing_tasks` обозначает БД с существующими проектами и задачами. Адрес заменяется адресом своего приложения. Скрипт _prepare-users.sql_ добавляет таблицу пользователей с уникальным email. Он не удаляет и не пересоздаёт проекты или задачи. Обычная команда `make db-migrate` готовит пустую БД и для этого перехода не используется.
+
+Назначенный владелец получает email и пароль. Команда `read` запрашивает пароль без вывода введённых символов. Скрипт использует готовую функцию Argon2 из приложения, сохраняет хеш в БД и выводит только UUID пользователя. Если пользователь с таким email уже существует, скрипт проверяет пароль и возвращает его UUID.
+
+```bash
+export OWNER_EMAIL=owner@example.com
+read -r -s OWNER_PASSWORD
+export OWNER_PASSWORD
+OWNER_ID=$(pnpm --silent run db:seed-owner)
+unset OWNER_PASSWORD
+LEGACY_PROJECT_ID=$(node --input-type=module -e 'import { randomUUID } from "node:crypto"; console.log(randomUUID())')
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v owner_id="$OWNER_ID" -v legacy_project_id="$LEGACY_PROJECT_ID" -f migrations/assign-owners.sql
+```
+
+В этой команде `OWNER_ID` содержит UUID выбранного пользователя, а `LEGACY_PROJECT_ID` содержит UUID нового проекта для задач без проекта. Скрипт назначает владельца существующим проектам, связывает оставшиеся задачи с новым проектом и вводит обязательность связей в одной транзакции. Для задач, у которых проект уже был, связь сохраняется. После входа назначенный пользователь получает доступ к перенесённым данным.

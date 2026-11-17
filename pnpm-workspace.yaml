@@ -1,0 +1,8 @@
+packages: []
+allowBuilds:
+  '@nestjs/core': false
+  '@scarf/scarf': false
+  '@swc/core': true
+  argon2: true
+  esbuild: true
+  fsevents: false

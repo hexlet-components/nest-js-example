@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT NOT NULL CONSTRAINT users_email_unique UNIQUE, password_hash TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS projects (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', owner_id UUID NOT NULL REFERENCES users(id));
+CREATE TABLE IF NOT EXISTS tasks (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo','done')), project_id UUID NOT NULL REFERENCES projects(id) ON DELETE RESTRICT);

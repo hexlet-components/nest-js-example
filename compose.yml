@@ -1,0 +1,20 @@
+name: nest-js-example
+services:
+  db:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: nest
+      POSTGRES_PASSWORD: nest
+      POSTGRES_DB: nest
+    ports:
+      - "55432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql
+      - ./migrations/init-test-db.sql:/docker-entrypoint-initdb.d/001-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nest -d nest"]
+      interval: 1s
+      retries: 30
+
+volumes:
+  pg-data:
